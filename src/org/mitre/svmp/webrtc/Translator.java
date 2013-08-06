@@ -16,5 +16,22 @@
 
 package org.mitre.svmp.webrtc;
 
+import org.mitre.svmp.protocol.SVMPProtocol.Response;
+import org.mitre.svmp.protocol.SVMPProtocol.WebRTCMessage;
+import org.mitre.svmp.protocol.SVMPProtocol.Response.ResponseType;
+
 public class Translator {
+    
+    public static String ProtobufToJSON(WebRTCMessage pb) {
+        return pb.getJson();
+    }
+    
+    public static Response JSONToProtobuf(String json) {
+        return Response.newBuilder()
+                .setType(ResponseType.WEBRTC)
+                .setWebrtcMsg(WebRTCMessage.newBuilder().setJson(json))
+                .build();
+    }
+
+    private Translator() {};
 }
