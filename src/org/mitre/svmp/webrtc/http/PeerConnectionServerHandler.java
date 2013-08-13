@@ -109,13 +109,14 @@ public class PeerConnectionServerHandler extends ChannelInboundHandlerAdapter {
                     // lie about the other peer being there
                     
                     ByteBuf content = copiedBuffer(username + "," + FBSTREAM_PEER_ID + ",1\n" +
-                                                            "svmpclient," + CLIENT_PEER_ID + ",1",
+                                                            "svmpclient," + CLIENT_PEER_ID + ",1\n",
                             CharsetUtil.US_ASCII);
                     response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.OK, content);
     
                     response.headers().set(CONTENT_TYPE, "text/plain");
                     response.headers().set(CONNECTION, "close");
                     response.headers().set(PRAGMA, FBSTREAM_PEER_ID);
+                    response.headers().set(CONTENT_LENGTH, content.array().length);
                     
                     // do we have to set the content-length header ourselves?
                     // if so, how do we calculate it?
@@ -141,7 +142,7 @@ public class PeerConnectionServerHandler extends ChannelInboundHandlerAdapter {
                     SVMPProtocol.Request pbMsg = receiveQueue.take();
     
                     // convert it to JSON
-                    String json = Translator.ProtobufToJSON(pbMsg.getWebrtcMsg());
+                    String json = Translator.ProtobufToJSON(pbMsg.getWebrtcMsg()) + "\n";
                     ByteBuf content = copiedBuffer(json, CharsetUtil.US_ASCII);
                     
                     System.out.println("JSON from client:\n" + json);
@@ -165,9 +166,8 @@ public class PeerConnectionServerHandler extends ChannelInboundHandlerAdapter {
                     response.headers().set(PRAGMA, CLIENT_PEER_ID);
                     // peerconnection_server appears to set "Connection: close" for these
                     response.headers().set(CONNECTION, "close");
+                    response.headers().set(CONTENT_LENGTH, content.array().length);
                     
-                    // send in HTTP response
-                    response = null;
                 } else {
                     // some other bad URL
                     response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.NOT_FOUND);
@@ -205,6 +205,7 @@ public class PeerConnectionServerHandler extends ChannelInboundHandlerAdapter {
             // generate appropriate HTTP response
             response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
             response.headers().set(CONNECTION, "close");
+            response.headers().set(CONTENT_LENGTH, 0);
 
             // send response
             System.out.println("HTTP response:\n" + response.toString());
