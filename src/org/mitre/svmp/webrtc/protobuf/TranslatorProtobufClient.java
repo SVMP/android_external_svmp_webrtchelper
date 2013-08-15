@@ -19,6 +19,8 @@ package org.mitre.svmp.webrtc.protobuf;
 import java.util.concurrent.BlockingQueue;
 
 import org.mitre.svmp.protocol.SVMPProtocol;
+import org.mitre.svmp.protocol.SVMPProtocol.Response;
+import org.mitre.svmp.protocol.SVMPProtocol.Response.ResponseType;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -60,9 +62,13 @@ public class TranslatorProtobufClient implements Runnable {
                 Channel ch = b.connect(host, port).sync().channel();
                 System.out.println("Protobuf client connected.");
     
+                // start by sending a VMREADY message to comply with what the input event server expects
+                Response ready = Response.newBuilder().setType(ResponseType.VMREADY).build();
+                ch.writeAndFlush(ready);
+                
                 ChannelFuture lastWriteFuture = null;
                 while (true) {
-                    lastWriteFuture = ch.writeAndFlush(sendQueue.take());
+                     ch.writeAndFlush(sendQueue.take());
                 }
                 // unreachable until we add a way to break the while loop
                 //if (lastWriteFuture != null) {
