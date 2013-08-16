@@ -66,6 +66,9 @@ public class TranslatorProtobufClient implements Runnable {
                 Response ready = Response.newBuilder().setType(ResponseType.VMREADY).build();
                 ch.writeAndFlush(ready);
                 
+                sendQueue.clear();
+                receiveQueue.clear();
+                
                 ChannelFuture lastWriteFuture = null;
                 while (true) {
                      ch.writeAndFlush(sendQueue.take());

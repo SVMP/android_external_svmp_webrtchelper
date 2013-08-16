@@ -38,6 +38,7 @@ import org.mitre.svmp.protocol.SVMPProtocol;
 import org.mitre.svmp.protocol.SVMPProtocol.Request;
 import org.mitre.svmp.protocol.SVMPProtocol.Response;
 import org.mitre.svmp.protocol.SVMPProtocol.Response.ResponseType;
+import org.mitre.svmp.protocol.SVMPProtocol.WebRTCMessage.WebRTCType;
 import org.mitre.svmp.webrtc.Translator;
 
 
@@ -118,8 +119,8 @@ public class PeerConnectionServerHandler extends ChannelInboundHandlerAdapter {
                     response.headers().set(PRAGMA, FBSTREAM_PEER_ID);
                     response.headers().set(CONTENT_LENGTH, content.array().length);
                     
-                    // do we have to set the content-length header ourselves?
-                    // if so, how do we calculate it?
+                    // clear out any junk that's in the receive queue from past lives
+                    receiveQueue.clear();
                 }
     
                 // Case: GET /sign_out?peer_id=%i
@@ -140,12 +141,18 @@ public class PeerConnectionServerHandler extends ChannelInboundHandlerAdapter {
                 else if (uri.startsWith("/wait")) {
                     // pull something off receiveQueue
                     SVMPProtocol.Request pbMsg = receiveQueue.take();
-    
-                    // convert it to JSON
-                    String json = Translator.ProtobufToJSON(pbMsg.getWebrtcMsg()) + "\n";
-                    ByteBuf content = copiedBuffer(json, CharsetUtil.US_ASCII);
                     
-                    System.out.println("JSON from client:\n" + json);
+                    ByteBuf content;
+                    if (pbMsg.getWebrtcMsg().hasType() && pbMsg.getWebrtcMsg().getType() == WebRTCType.BYE) {
+                        content = copiedBuffer("BYE", CharsetUtil.US_ASCII);
+                        receiveQueue.clear();
+                        sendQueue.clear();
+                    } else {
+                        // convert it to JSON
+                        String json = Translator.ProtobufToJSON(pbMsg.getWebrtcMsg()) + "\n";
+                        System.out.println("JSON from client:\n" + json);
+                        content = copiedBuffer(json, CharsetUtil.US_ASCII);
+                    }
     
                     // make HTTP response
                     response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.OK, content);
